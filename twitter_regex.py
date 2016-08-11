@@ -8,19 +8,22 @@
 
 REGEXEN = {}
 
+
 def safe_unichr(n):
     try:
-        return unichr(n)
+        return chr(n)
     except ValueError:
         # Thanks, Stack Overflow! http://stackoverflow.com/a/7107319/151221
         h = hex(n).split('0x')[1].zfill(8)
         return (r'\U' + h).decode('unicode-escape')
+
 
 def regex_range(fro, to=None):
     if to:
         return u'%s-%s' % (safe_unichr(fro), safe_unichr(to))
     else:
         return safe_unichr(fro)
+
 
 def flatten(xs):
     result = []
@@ -32,10 +35,10 @@ def flatten(xs):
     return result
 
 # Character not allowed in Tweets
-INVALID_CHARACTERS = map(unichr, [
-    0xFFFE, 0xFEFF, # BOM
+INVALID_CHARACTERS = map(chr, [
+    0xFFFE, 0xFEFF,  # BOM
     0xFFFF,         # Special
-    0x202A, 0x202B, 0x202C, 0x202D, 0x202E # Directional change
+    0x202A, 0x202B, 0x202C, 0x202D, 0x202E  # Directional change
 ])
 REGEXEN['invalid_control_characters'] = u'[%(INVALID_CHARACTERS)s]' % locals()
 
@@ -66,14 +69,16 @@ PUNCTUATION_CHARS = """!"#$%&'()*+,-./:;<=>?@\[\]^_`{|}~"""
 CTRL_CHARS = u"\x00-\x1F\x7F"
 
 # URL related hash regex collection
-REGEXEN['valid_preceding_chars'] = u"(?:[^-/\"'!=A-Z0-9_@＠$#＃\\." + u''.join(INVALID_CHARACTERS) + u']|^)'
+REGEXEN['valid_preceding_chars'] = u"(?:[^-/\"'!=A-Z0-9_@＠$#＃\\." + \
+    u''.join(INVALID_CHARACTERS) + u']|^)'
 
-DOMAIN_VALID_CHARS = u'[^\s' + PUNCTUATION_CHARS + CTRL_CHARS + u''.join(INVALID_CHARACTERS) + u']'
-REGEXEN['valid_subdomain'] = ur'(?:(?:%(DOMAIN_VALID_CHARS)s(?:[_-]|%(DOMAIN_VALID_CHARS)s)*)?%(DOMAIN_VALID_CHARS)s\.)' % locals()
-REGEXEN['valid_domain_name'] = ur'(?:(?:%(DOMAIN_VALID_CHARS)s(?:[-]|%(DOMAIN_VALID_CHARS)s)*)?%(DOMAIN_VALID_CHARS)s\.)' % locals()
+DOMAIN_VALID_CHARS = u'[^\s' + PUNCTUATION_CHARS + \
+    CTRL_CHARS + u''.join(INVALID_CHARACTERS) + u']'
+REGEXEN['valid_subdomain'] = r'(?:(?:%(DOMAIN_VALID_CHARS)s(?:[_-]|%(DOMAIN_VALID_CHARS)s)*)?%(DOMAIN_VALID_CHARS)s\.)' % locals()
+REGEXEN['valid_domain_name'] = r'(?:(?:%(DOMAIN_VALID_CHARS)s(?:[-]|%(DOMAIN_VALID_CHARS)s)*)?%(DOMAIN_VALID_CHARS)s\.)' % locals()
 
-REGEXEN['valid_gTLD'] = ur'(?:(?:aero|asia|biz|cat|com|coop|edu|gov|info|int|jobs|mil|mobi|museum|name|net|org|pro|tel|travel|xxx)(?=[^a-z]|$))'
-REGEXEN['valid_ccTLD'] = ur"""
+REGEXEN['valid_gTLD'] = r'(?:(?:aero|asia|biz|cat|com|coop|edu|gov|info|int|jobs|mil|mobi|museum|name|net|org|pro|tel|travel|xxx)(?=[^a-z]|$))'
+REGEXEN['valid_ccTLD'] = r"""
     (?:
         (?:ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|
         ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|
@@ -84,25 +89,27 @@ REGEXEN['valid_ccTLD'] = ur"""
         (?=[^a-z]|$)
     )
 """
-REGEXEN['valid_punycode'] = ur'(?:xn--[0-9a-z]+)'
+REGEXEN['valid_punycode'] = r'(?:xn--[0-9a-z]+)'
 
-REGEXEN['valid_domain'] = ur"""(?:
+REGEXEN['valid_domain'] = r"""(?:
     %(valid_subdomain)s*%(valid_domain_name)s
     (?:%(valid_gTLD)s|%(valid_ccTLD)s|%(valid_punycode)s)
 )""" % REGEXEN
 
-REGEXEN['valid_port_number'] = ur'[0-9]+'
+REGEXEN['valid_port_number'] = r'[0-9]+'
 
-REGEXEN['valid_general_url_path_chars'] = ur"""[a-z0-9!\*';:=\+\,\.\$/%%#\[\]\-_~&|%(LATIN_ACCENTS)s]""" % locals()
+REGEXEN['valid_general_url_path_chars'] = r"""[a-z0-9!\*';:=\+\,\.\$/%%#\[\]\-_~&|%(LATIN_ACCENTS)s]""" % locals()
 # Allow URL paths to contain balanced parens
 #  1. Used in Wikipedia URLs like /Primer_(film)
 #  2. Used in IIS sessions like /S(dfd346)/
-REGEXEN['valid_url_balanced_parens'] = ur'\(%(valid_general_url_path_chars)s+\)' % REGEXEN
+REGEXEN['valid_url_balanced_parens'] = r'\(%(valid_general_url_path_chars)s+\)' % REGEXEN
 # Valid end-of-path chracters (so /foo. does not gobble the period).
 #   1. Allow =&# for empty URL parameters and other URL-join artifacts
-REGEXEN['valid_url_path_ending_chars'] = u'[a-z0-9=_#/+\\-' + LATIN_ACCENTS + u']|(?:' + REGEXEN['valid_url_balanced_parens'] + u')'
-# Allow @ in a url, but only in the middle. Catch things like http://example.com/@user/
-REGEXEN['valid_url_path'] = ur"""(?:
+REGEXEN['valid_url_path_ending_chars'] = '[a-z0-9=_#/+\\-' + \
+    LATIN_ACCENTS + u']|(?:' + REGEXEN['valid_url_balanced_parens'] + u')'
+# Allow @ in a url, but only in the middle. Catch things like
+# http://example.com/@user/
+REGEXEN['valid_url_path'] = r"""(?:
     (?:
         %(valid_general_url_path_chars)s*
         (?:%(valid_url_balanced_parens)s %(valid_general_url_path_chars)s*)*
@@ -110,9 +117,9 @@ REGEXEN['valid_url_path'] = ur"""(?:
     )|(?:@%(valid_general_url_path_chars)s+/)
 )""" % REGEXEN
 
-REGEXEN['valid_url_query_chars'] = ur"""[a-z0-9!?\*'\(\);:&=\+\$/%#\[\]\-_\.,~|]"""
-REGEXEN['valid_url_query_ending_chars'] = ur'[a-z0-9_&=#/]'
-REGEXEN['valid_url'] = ur"""(?iux)
+REGEXEN['valid_url_query_chars'] = r"""[a-z0-9!?\*'\(\);:&=\+\$/%#\[\]\-_\.,~|]"""
+REGEXEN['valid_url_query_ending_chars'] = r'[a-z0-9_&=#/]'
+REGEXEN['valid_url'] = r"""(?iux)
 (                                                                           #   $1 total match
     (%(valid_preceding_chars)s)                                             #   $2 Preceeding chracter
     (                                                                       #   $3 URL
